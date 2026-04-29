@@ -1,6 +1,9 @@
 fastapi
-uvicorn
+uvicorn[stardard]
 sqlalchemy
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
 psycopg2-binary
 pydantic[email]
 streamlit
