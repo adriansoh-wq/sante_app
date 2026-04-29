@@ -3,10 +3,26 @@ import requests
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import os
 import numpy as np
+import threading
+import time
+import requests
 
 # --- CONFIGURATION ---
 API_URL = os.getenv("https://sante-app-t2h3.onrender.com")
+
+
+def keep_alive():
+    while True:
+        try:
+            requests.get(f"{API_URL}/public/stats_globales", timeout=5)
+        except:
+            pass
+        time.sleep(600)
+thread = threading.Thread(target=keep_alive, daemon=True)
+thread.start()
+
 st.set_page_config(page_title="HealthCollect Pro", page_icon="🏥", layout="wide")
 
 # Actualise l'application automatiquement toutes les 30 secondes
