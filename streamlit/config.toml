@@ -1,0 +1,15 @@
+[theme]
+# Couleur des boutons et curseurs
+primaryColor = "#007bff"
+
+# Couleur du fond de la page (Gris très clair)
+backgroundColor = "#F8F9FA"
+
+# Couleur du fond des blocs et barres latérales
+secondaryBackgroundColor = "#FFFFFF"
+
+# COULEUR DU TEXTE (Noir/Gris foncé pour la lisibilité)
+textColor = "#262730"
+
+# Police d'écriture
+font = "sans serif"
