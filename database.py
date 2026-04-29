@@ -9,10 +9,12 @@ SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./sante_app.db")
 
 # 2. CRÉATION DE L'ENGINE (Moteur de recherche)
 # "check_same_thread=False" est nécessaire uniquement pour SQLite avec FastAPI
-engine = create_engine(
+if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(
     SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
 )
-
+else:
+    engine = create_engine(SQLALCHEMY_DATABASE_URL)
 # 3. CRÉATION DE LA SESSION
 # C'est ce qui permet d'ouvrir une "conversation" avec la base de données
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
