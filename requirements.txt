@@ -9,4 +9,6 @@ pydantic[email]
 streamlit
 pandas
 plotly
+numpy
+streamlit-autorefresh
 requests
