@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 import numpy as np
 
 # --- CONFIGURATION ---
-API_URL = "http://127.0.0.1:8000"
+API_URL = "https://sante-app-t2h3.onrender.com"
 st.set_page_config(page_title="HealthCollect Pro", page_icon="🏥", layout="wide")
 
 # Actualise l'application automatiquement toutes les 30 secondes
