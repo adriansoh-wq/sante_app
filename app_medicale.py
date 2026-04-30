@@ -241,6 +241,8 @@ st.markdown("""
 # --- INITIALISATION DE LA SESSION ---
 if 'token' not in st.session_state:
     st.session_state.token = None
+if 'token_expire' not in st.session_state:
+    st.session_state.token_expire = Fasle
 
 # --- EN-TÊTE ---
 st.markdown("<h1 style='text-align: center; color: #2c3e50;'>🏥 Portail HealthCollect</h1>", unsafe_allow_html=True)
