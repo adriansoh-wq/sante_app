@@ -117,8 +117,9 @@ def obtenir_stats_publiques(db: Session = Depends(database.get_db)):
 
 @app.get("/public/toutes_mesures")
 def toutes_mesures(db: Session = Depends(database.get_db)):
-    """Retourne toutes les mesures anonymisées pour le scatter public."""
     mesures = db.query(models.Mesure).all()
+    if not mesures:
+        return []
     return [
         {
             "temperature": m.temperature,
@@ -126,7 +127,6 @@ def toutes_mesures(db: Session = Depends(database.get_db)):
         }
         for m in mesures
     ]
-
 # ==========================================
 # ROUTES PROTÉGÉES (MÉDECIN UNIQUEMENT)
 # ==========================================
