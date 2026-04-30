@@ -10,6 +10,10 @@ app = FastAPI()
 # Création des tables au démarrage
 models.Base.metadata.create_all(bind=database.engine)
 
+@app.get("/ping")
+def ping():
+    return {"status": "alive"}
+
 # ==========================================
 # ROUTES PUBLIQUES (ACCÈS LIBRE)
 # ==========================================
