@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
@@ -6,6 +6,7 @@ from sqlalchemy import func
 import models, schemas, database, security
 
 app = FastAPI()
+ALLOW_REGISTRATION = True
 
 # Création des tables au démarrage
 models.Base.metadata.create_all(bind=database.engine)
@@ -113,6 +114,19 @@ def obtenir_stats_publiques(db: Session = Depends(database.get_db)):
         "total_relevés": len(mesures),
         "historique_temp": historique # On envoie les vraies données ici
     }
+
+@app.get("/public/toutes_mesures")
+def toutes_mesures(db: Session = Depends(database.get_db)):
+    """Retourne toutes les mesures anonymisées pour le scatter public."""
+    mesures = db.query(models.Mesure).all()
+    return [
+        {
+            "temperature": m.temperature,
+            "rythme_cardiaque": m.rythme_cardiaque
+        }
+        for m in mesures
+    ]
+
 # ==========================================
 # ROUTES PROTÉGÉES (MÉDECIN UNIQUEMENT)
 # ==========================================
@@ -162,3 +176,28 @@ def consulter_dossier_prive(
     if not patient:
         raise HTTPException(status_code=404, detail="Patient introuvable")
     return patient
+    
+@app.post("/register/medecin")
+def register_medecin(medecin: dict, db: Session = Depends(get_db)):
+    if not ALLOW_REGISTRATION:
+        raise HTTPException(status_code=403, detail="L'inscription est actuellement désactivée.")
+   
+    # Vérifier si l'email existe déjà
+    db_user = db.query(models.Medecin).filter(models.Medecin.email == medecin['email']).first()
+    if db_user:
+        raise HTTPException(status_code=400, detail="Cet email est déjà utilisé.")
+   
+    # Hachage du mot de passe avant enregistrement
+    hashed_password = security.pwd_context.hash(medecin['password'])
+   
+    noueau_medecin = models.Medecin(
+        nom=medecin['nom'],
+        specialite=medecin['specialite'],
+        email=medecin['email'],
+        hashed_password=hashed_password
+    )
+   
+    db.add(noueau_medecin)
+    db.commit()
+    return {"message": "Compte médecin créé avec succès !"}
+
