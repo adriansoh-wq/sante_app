@@ -350,54 +350,110 @@ with tab_public:
     col_b1, col_b2 = st.columns(2)
 
     with col_b1:
-        st.markdown("**Volume de saisies par jour (7 derniers jours)**")
-
+        st.markdown("**🔍 Dispersion Température / Rythme Cardiaque (données publiques)**")
+    
+        # Récupérer toutes les mesures via les stats globales
+        stats_raw, ok = get_stats_globales()
+       
         try:
-            res_saisies = requests.get(f"{API_URL}/public/saisies_par_jour")
-        
-            if res_saisies.status_code == 200:
-                df_demo = pd.DataFrame(res_saisies.json())
-                source = "✅ Données en temps réel"
+            res_mesures = requests.get(
+                f"{API_URL}/public/toutes_mesures", timeout=5
+            )
+            if res_mesures.status_code == 200:
+                df_scatter_pub = pd.DataFrame(res_mesures.json())
+                source_scatter = "✅ Données réelles"
             else:
-                raise Exception("API indisponible")
-            
+                raise Exception()
         except:
-            # Fallback si API éteinte
-            df_demo = pd.DataFrame({
-                "Jour": ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"],
-                "Saisies": [0, 0, 0, 0, 0, 0, 0],
-                "Date": ["--"]*7
+            # Données simulées si API indisponible
+            np.random.seed(42)
+            n = 30
+            df_scatter_pub = pd.DataFrame({
+                "temperature": np.round(
+                    np.random.normal(37.1, 0.5, n).clip(35, 42), 1
+                ),
+                "rythme_cardiaque": np.random.randint(55, 130, n)
             })
-            source = "⚠️ Données indisponibles — API hors ligne"
-
-        st.caption(source)
-
-        fig_bar = px.bar(
-            df_demo,
-            x="Jour",
-            y="Saisies",
-            color="Saisies",
-            color_continuous_scale=["#1e3a5f", "#2563eb", "#0ea5e9"],
-            hover_data=["Date"] if "Date" in df_demo.columns else None,
-            text="Saisies"
-        )
-        fig_bar.update_traces(
-            textposition="outside",
-            textfont_color="#ffffff",
-            marker_line_width=0,
-            opacity=0.9
-        )
-        fig_bar.update_layout(
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)",
-            font={"color": "#a8b8cc"},
-            coloraxis_showscale=False,
-            height=280,
-            margin=dict(t=30, b=20, l=20, r=20),
-            xaxis=dict(gridcolor="rgba(255,255,255,0.05)"),
-            yaxis=dict(gridcolor="rgba(255,255,255,0.05)")
-        )
-        st.plotly_chart(fig_bar, use_container_width=True)
+            source_scatter = "⚠️ Données simulées"
+    
+        st.caption(source_scatter)
+    
+        if not df_scatter_pub.empty:
+            # Droite de tendance (régression linéaire)
+            x = df_scatter_pub["temperature"]
+            y = df_scatter_pub["rythme_cardiaque"]
+            coeffs = np.polyfit(x, y, 1)
+            x_line = np.linspace(x.min(), x.max(), 100)
+            y_line = np.polyval(coeffs, x_line)
+            df_tendance = pd.DataFrame({
+                "temperature": x_line,
+                "tendance": y_line
+            })
+    
+            fig_scatter_pub = px.scatter(
+                df_scatter_pub,
+                x="temperature",
+                y="rythme_cardiaque",
+                color="rythme_cardiaque",
+                color_continuous_scale=["#34d399", "#2563eb", "#ef4444"],
+                labels={
+                    "temperature": "Température (°C)",
+                    "rythme_cardiaque": "Rythme Cardiaque (BPM)"
+                },
+                title="Corrélation Température / Cardio"
+            )
+    
+            # Ajout droite de tendance
+            fig_scatter_pub.add_scatter(
+                x=x_line, y=y_line,
+                mode="lines",
+                name="Tendance",
+                line=dict(color="#f59e0b", width=2, dash="dash")
+            )
+    
+            # Lignes seuils
+            fig_scatter_pub.add_vline(
+                x=37.5, line_dash="dash",
+                line_color="#ef4444", opacity=0.5,
+                annotation_text="Seuil fièvre",
+                annotation_font_color="#ef4444"
+            )
+            fig_scatter_pub.add_hline(
+                y=100, line_dash="dash",
+                line_color="#f59e0b", opacity=0.5,
+                annotation_text="Tachycardie",
+                annotation_font_color="#f59e0b"
+            )
+    
+            fig_scatter_pub.update_traces(
+                marker=dict(size=10, opacity=0.8,
+                           line=dict(width=1, color="rgba(255,255,255,0.3)")),
+                selector=dict(mode="markers")
+            )
+            fig_scatter_pub.update_layout(
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                font={"color": "#a8b8cc"},
+                title_font_color="#ffffff",
+                coloraxis_showscale=False,
+                height=280,
+                margin=dict(t=40, b=20, l=20, r=20),
+                xaxis=dict(
+                    gridcolor="rgba(255,255,255,0.05)",
+                    title="Température (°C)",
+                    range=[35, 42]
+                ),
+                yaxis=dict(
+                    gridcolor="rgba(255,255,255,0.05)",
+                    title="BPM"
+                ),
+                showlegend=True,
+                legend=dict(
+                    font=dict(color="#a8b8cc"),
+                    bgcolor="rgba(0,0,0,0)"
+                )
+            )
+            st.plotly_chart(fig_scatter_pub, use_container_width=True)
 
     with col_b2:
         st.markdown("**Tendance température (30 derniers jours)**")
