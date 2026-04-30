@@ -545,7 +545,7 @@ with tab_patient:
 # ==========================================
 # ONGLET 3 : ESPACE MÉDECIN (SÉCURISÉ)
 # ==========================================
-tab_medecin:
+with tab_medecin:
 
     if st.session_state.token_expire:
         st.error("⏱️ Session expirée. Veuillez vous reconnecter.")
