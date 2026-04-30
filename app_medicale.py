@@ -14,11 +14,12 @@ API_URL = "https://sante-app-t2h3.onrender.com"
 
 def keep_alive():
     while True:
+        time.sleep(240)
         try:
             requests.get(f"{API_URL}/public/stats_globales", timeout=5)
         except:
             pass
-        time.sleep(600)
+        
 thread = threading.Thread(target=keep_alive, daemon=True)
 thread.start()
 
