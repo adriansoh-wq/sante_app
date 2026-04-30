@@ -177,27 +177,4 @@ def consulter_dossier_prive(
         raise HTTPException(status_code=404, detail="Patient introuvable")
     return patient
     
-@app.post("/register/medecin")
-def register_medecin(medecin: dict, db: Session = Depends(get_db)):
-    if not ALLOW_REGISTRATION:
-        raise HTTPException(status_code=403, detail="L'inscription est actuellement désactivée.")
-   
-    # Vérifier si l'email existe déjà
-    db_user = db.query(models.Medecin).filter(models.Medecin.email == medecin['email']).first()
-    if db_user:
-        raise HTTPException(status_code=400, detail="Cet email est déjà utilisé.")
-   
-    # Hachage du mot de passe avant enregistrement
-    hashed_password = security.pwd_context.hash(medecin['password'])
-   
-    noueau_medecin = models.Medecin(
-        nom=medecin['nom'],
-        specialite=medecin['specialite'],
-        email=medecin['email'],
-        hashed_password=hashed_password
-    )
-   
-    db.add(noueau_medecin)
-    db.commit()
-    return {"message": "Compte médecin créé avec succès !"}
 
