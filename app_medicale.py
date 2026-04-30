@@ -350,6 +350,18 @@ with tab_public:
     # --- LIGNE 2 : Bar chart volume + Line chart tendance ---
     col_b1, col_b2 = st.columns(2)
 
+    def get_stats_globales():
+        """Récupère les statistiques depuis le backend"""
+        try:
+            # On appelle la route publique de ton API
+            response = requests.get(f"{API_URL}/public/stats_globales", timeout=5)
+            if response.status_code == 200:
+                return response.json(), True
+            return {}, False
+        except Exception as e:
+            st.error(f"Erreur de connexion au backend : {e}")
+            return {}, False
+    
     with col_b1:
         st.markdown("**🔍 Dispersion Température / Rythme Cardiaque (données publiques)**")
     
