@@ -558,13 +558,11 @@ with tab_patient:
 # ONGLET 3 : ESPACE MÉDECIN (SÉCURISÉ)
 # ==========================================
 with tab_medecin:
-
-     if not st.session_state.token:
+    if not st.session_state.token:
         st.warning("⚠️ Accès restreint au personnel médical.")
         col_log1, col_log2, col_log3 = st.columns([1, 2, 1])
        
         with col_log2:
-            
             with st.form("form_connexion"):
                 st.subheader("Authentification Sécurisée")
                 username = st.text_input("Identifiant Médecin")
@@ -578,124 +576,124 @@ with tab_medecin:
                         st.rerun()
                     else:
                         st.error("Identifiants incorrects.")
-                else:
+       else:
                     # Interface si le médecin est connecté
-                    col_head1, col_head2 = st.columns([4, 1])
-                    col_head1.header("👨‍⚕️ Dossiers Patients Privés")
-                    if col_head2.button("Se déconnecter"):
-                        st.session_state.token = None
-                        st.rerun()
+            col_head1, col_head2 = st.columns([4, 1])
+            col_head1.header("👨‍⚕️ Dossiers Patients Privés")
+            if col_head2.button("Se déconnecter"):
+                st.session_state.token = None
+                st.rerun()
                        
-                    st.write("---")
+            st.write("---")
                    
-                    patient_id = st.number_input("Entrez l'identifiant (ID) du patient à consulter", min_value=1, step=1)
+            patient_id = st.number_input("Entrez l'identifiant (ID) du patient à consulter", min_value=1, step=1)         
        
-        if st.button("Afficher le dossier médical"):
-            headers = {"Authorization": f"Bearer {st.session_state.token}"}
+            if st.button("Afficher le dossier médical"):
+                headers = {"Authorization": f"Bearer {st.session_state.token}"}
             # Appel à la route sécurisée !
-            res_dossier = requests.get(f"{API_URL}/medecin/patient/{patient_id}", headers=headers)
-           
-            if res_dossier.status_code == 200:
-                p = res_dossier.json()
+                res_dossier = requests.get(f"{API_URL}/medecin/patient/{patient_id}", headers=headers)
                
-                # Affichage des infos personnelles chiffrées/protégées
-                st.markdown(f"### 📋 Patient : **{p['nom_complet']}**")
-                c1, c2, c3 = st.columns(3)
-                c1.info(f"Âge : {p['age']} ans | Sexe : {p['genre']}")
-                c2.info(f"Poids : {p['poids']} kg | Groupe : {p['groupe_sanguin']}")
-                c3.info(f"Contact : {p['email']}")
-               
-                # Génération des graphiques Plotly
-                if p.get('mesures'):
-                    df = pd.DataFrame(p['mesures'])
-                    df['date_prise'] = pd.to_datetime(df['date_prise'])
-                    df = df.sort_values('date_prise')
+                if res_dossier.status_code == 200:
+                    p = res_dossier.json()
                    
-                    col_priv1, col_priv2 = st.columns(2)
-
-                    with col_priv1:
-                        # Line chart température
-                        fig_temp_priv = px.line(
-                            df, x='date_prise', y='temperature',
-                            markers=True, title="🌡️ Évolution Température"
+                    # Affichage des infos personnelles chiffrées/protégées
+                    st.markdown(f"### 📋 Patient : **{p['nom_complet']}**")
+                    c1, c2, c3 = st.columns(3)
+                    c1.info(f"Âge : {p['age']} ans | Sexe : {p['genre']}")
+                    c2.info(f"Poids : {p['poids']} kg | Groupe : {p['groupe_sanguin']}")
+                    c3.info(f"Contact : {p['email']}")
+                   
+                    # Génération des graphiques Plotly
+                    if p.get('mesures'):
+                        df = pd.DataFrame(p['mesures'])
+                        df['date_prise'] = pd.to_datetime(df['date_prise'])
+                        df = df.sort_values('date_prise')
+                       
+                        col_priv1, col_priv2 = st.columns(2)
+    
+                        with col_priv1:
+                            # Line chart température
+                            fig_temp_priv = px.line(
+                                df, x='date_prise', y='temperature',
+                                markers=True, title="🌡️ Évolution Température"
+                            )
+                            fig_temp_priv.add_hline(
+                                y=37.5, line_dash="dash",
+                                line_color="#ef4444", opacity=0.7,
+                                annotation_text="Seuil fièvre 37.5°C",
+                                annotation_font_color="#ef4444"
+                            )
+                            fig_temp_priv.update_traces(
+                                line=dict(color="#2563eb", width=2.5),
+                                marker=dict(color="#0ea5e9", size=8)
+                            )
+                            fig_temp_priv.update_layout(
+                                paper_bgcolor="rgba(0,0,0,0)",
+                                plot_bgcolor="rgba(0,0,0,0)",
+                                font={"color": "#a8b8cc"},
+                                title_font_color="#ffffff",
+                                height=300,
+                                margin=dict(t=50, b=20, l=20, r=20),
+                                xaxis=dict(gridcolor="rgba(255,255,255,0.05)", title="Date"),
+                                yaxis=dict(gridcolor="rgba(255,255,255,0.05)", title="°C", range=[35, 42])
+                            )
+                            st.plotly_chart(fig_temp_priv, use_container_width=True)
+    
+                        with col_priv2:
+                            # Area chart rythme cardiaque
+                            fig_cardio_priv = px.area(
+                                df, x='date_prise', y='rythme_cardiaque',
+                                title="❤️ Rythme Cardiaque"
+                            )
+                            fig_cardio_priv.add_hline(
+                                y=100, line_dash="dash",
+                                line_color="#f59e0b", opacity=0.7,
+                                annotation_text="Seuil tachycardie",
+                                annotation_font_color="#f59e0b"
+                            )
+                            fig_cardio_priv.update_traces(
+                                fill="tozeroy",
+                                fillcolor="rgba(14,165,233,0.15)",
+                                line=dict(color="#0ea5e9", width=2.5)
+                            )
+                            fig_cardio_priv.update_layout(
+                                paper_bgcolor="rgba(0,0,0,0)",
+                                plot_bgcolor="rgba(0,0,0,0)",
+                                font={"color": "#a8b8cc"},
+                                title_font_color="#ffffff",
+                                height=300,
+                                margin=dict(t=50, b=20, l=20, r=20),
+                                xaxis=dict(gridcolor="rgba(255,255,255,0.05)", title="Date"),
+                                yaxis=dict(gridcolor="rgba(255,255,255,0.05)", title="BPM")
+                            )
+                            st.plotly_chart(fig_cardio_priv, use_container_width=True)
+    
+                        # Scatter anomalies
+                        st.markdown("**🔍 Détection d'anomalies**")
+                        fig_scatter = px.scatter(
+                            df, x='temperature', y='rythme_cardiaque',
+                            color='temperature',
+                            color_continuous_scale=["#34d399", "#2563eb", "#ef4444"],
+                            size_max=15,
+                            hover_data=['date_prise'],
+                            title="Corrélation Température / Cardio"
                         )
-                        fig_temp_priv.add_hline(
-                            y=37.5, line_dash="dash",
-                            line_color="#ef4444", opacity=0.7,
-                            annotation_text="Seuil fièvre 37.5°C",
-                            annotation_font_color="#ef4444"
-                        )
-                        fig_temp_priv.update_traces(
-                            line=dict(color="#2563eb", width=2.5),
-                            marker=dict(color="#0ea5e9", size=8)
-                        )
-                        fig_temp_priv.update_layout(
+                        fig_scatter.add_vline(x=37.5, line_dash="dash", line_color="#ef4444", opacity=0.5)
+                        fig_scatter.add_hline(y=100,  line_dash="dash", line_color="#f59e0b", opacity=0.5)
+                        fig_scatter.update_traces(marker=dict(size=10, opacity=0.8))
+                        fig_scatter.update_layout(
                             paper_bgcolor="rgba(0,0,0,0)",
                             plot_bgcolor="rgba(0,0,0,0)",
                             font={"color": "#a8b8cc"},
                             title_font_color="#ffffff",
-                            height=300,
+                            height=350,
                             margin=dict(t=50, b=20, l=20, r=20),
-                            xaxis=dict(gridcolor="rgba(255,255,255,0.05)", title="Date"),
-                            yaxis=dict(gridcolor="rgba(255,255,255,0.05)", title="°C", range=[35, 42])
+                            xaxis=dict(gridcolor="rgba(255,255,255,0.05)", title="Température (°C)"),
+                            yaxis=dict(gridcolor="rgba(255,255,255,0.05)", title="BPM"),
+                            coloraxis_showscale=False
                         )
-                        st.plotly_chart(fig_temp_priv, use_container_width=True)
-
-                    with col_priv2:
-                        # Area chart rythme cardiaque
-                        fig_cardio_priv = px.area(
-                            df, x='date_prise', y='rythme_cardiaque',
-                            title="❤️ Rythme Cardiaque"
-                        )
-                        fig_cardio_priv.add_hline(
-                            y=100, line_dash="dash",
-                            line_color="#f59e0b", opacity=0.7,
-                            annotation_text="Seuil tachycardie",
-                            annotation_font_color="#f59e0b"
-                        )
-                        fig_cardio_priv.update_traces(
-                            fill="tozeroy",
-                            fillcolor="rgba(14,165,233,0.15)",
-                            line=dict(color="#0ea5e9", width=2.5)
-                        )
-                        fig_cardio_priv.update_layout(
-                            paper_bgcolor="rgba(0,0,0,0)",
-                            plot_bgcolor="rgba(0,0,0,0)",
-                            font={"color": "#a8b8cc"},
-                            title_font_color="#ffffff",
-                            height=300,
-                            margin=dict(t=50, b=20, l=20, r=20),
-                            xaxis=dict(gridcolor="rgba(255,255,255,0.05)", title="Date"),
-                            yaxis=dict(gridcolor="rgba(255,255,255,0.05)", title="BPM")
-                        )
-                        st.plotly_chart(fig_cardio_priv, use_container_width=True)
-
-                    # Scatter anomalies
-                    st.markdown("**🔍 Détection d'anomalies**")
-                    fig_scatter = px.scatter(
-                        df, x='temperature', y='rythme_cardiaque',
-                        color='temperature',
-                        color_continuous_scale=["#34d399", "#2563eb", "#ef4444"],
-                        size_max=15,
-                        hover_data=['date_prise'],
-                        title="Corrélation Température / Cardio"
-                    )
-                    fig_scatter.add_vline(x=37.5, line_dash="dash", line_color="#ef4444", opacity=0.5)
-                    fig_scatter.add_hline(y=100,  line_dash="dash", line_color="#f59e0b", opacity=0.5)
-                    fig_scatter.update_traces(marker=dict(size=10, opacity=0.8))
-                    fig_scatter.update_layout(
-                        paper_bgcolor="rgba(0,0,0,0)",
-                        plot_bgcolor="rgba(0,0,0,0)",
-                        font={"color": "#a8b8cc"},
-                        title_font_color="#ffffff",
-                        height=350,
-                        margin=dict(t=50, b=20, l=20, r=20),
-                        xaxis=dict(gridcolor="rgba(255,255,255,0.05)", title="Température (°C)"),
-                        yaxis=dict(gridcolor="rgba(255,255,255,0.05)", title="BPM"),
-                        coloraxis_showscale=False
-                    )
-                    st.plotly_chart(fig_scatter, use_container_width=True)
+                        st.plotly_chart(fig_scatter, use_container_width=True)
+                    else:
+                        st.warning("Aucune constante enregistrée pour ce patient.")
                 else:
-                    st.warning("Aucune constante enregistrée pour ce patient.")
-            else:
-                st.error("Dossier introuvable ou vous n'avez pas les autorisations nécessaires.")
+                    st.error("Dossier introuvable ou vous n'avez pas les autorisations nécessaires.")
