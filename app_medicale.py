@@ -10,7 +10,7 @@ import requests
 
 # --- CONFIGURATION ---
 API_URL = "https://sante-app-t2h3.onrender.com"
-INSCRIPTION_OUVERTE = True 
+ALLOW_REGISTER = True 
 
 
 def keep_alive():
@@ -350,23 +350,23 @@ with tab_public:
     # --- LIGNE 2 : Bar chart volume + Line chart tendance ---
     col_b1, col_b2 = st.columns(2)
 
-    def get_stats_globales():
+    
         """Récupère les statistiques depuis le backend"""
-        try:
+        #try:
             # On appelle la route publique de ton API
-            response = requests.get(f"{API_URL}/public/stats_globales", timeout=5)
-            if response.status_code == 200:
-                return response.json(), True
-            return {}, False
-        except Exception as e:
-            st.error(f"Erreur de connexion au backend : {e}")
-            return {}, False
+            #response = requests.get(f"{API_URL}/public/stats_globales", timeout=5)
+            #if response.status_code == 200:
+                #return response.json(), True
+            #return {}, False
+        #except Exception as e:
+            #st.error(f"Erreur de connexion au backend : {e}")
+            #return {}, False
     
     with col_b1:
         st.markdown("**🔍 Dispersion Température / Rythme Cardiaque (données publiques)**")
     
         # Récupérer toutes les mesures via les stats globales
-        stats_raw, ok = get_stats_globales()
+        #stats_raw, ok = get_stats_globales()
        
         try:
             res_mesures = requests.get(
@@ -557,143 +557,257 @@ with tab_patient:
 # ==========================================
 # ONGLET 3 : ESPACE MÉDECIN (SÉCURISÉ)
 # ==========================================
-with tab_medecin:
+tab_medecin:
+
+    if st.session_state.token_expire:
+        st.error("⏱️ Session expirée. Veuillez vous reconnecter.")
+        st.session_state.token = None
+        st.session_state.token_expire = False
+
     if not st.session_state.token:
-        st.warning("⚠️ Accès restreint au personnel médical.")
+        st.warning("⚠️ Accès restreint au personnel médical autorisé.")
         col_log1, col_log2, col_log3 = st.columns([1, 2, 1])
-       
+
         with col_log2:
-            with st.form("form_connexion"):
-                st.subheader("Authentification Sécurisée")
-                username = st.text_input("Identifiant Médecin")
-                password = st.text_input("Mot de passe", type="password")
-                btn_login = st.form_submit_button("Se Connecter")
-               
-                if btn_login:
-                    res_auth = requests.post(f"{API_URL}/token", data={"username": username, "password": password})
-                    if res_auth.status_code == 200:
-                        st.session_state.token = res_auth.json()["access_token"]
-                        st.rerun()
-                    else:
-                        st.error("Identifiants incorrects.")
+
+            # ===== CHOIX : CONNEXION OU INSCRIPTION =====
+            if ALLOW_REGISTER:
+                mode = st.radio(
+                    "Que souhaitez-vous faire ?",
+                    ["🔐 Se connecter", "📝 Créer un compte médecin"],
+                    horizontal=True
+                )
+            else:
+                mode = "🔐 Se connecter"
+
+            st.write("---")
+
+            # ===== FORMULAIRE CONNEXION =====
+            if mode == "🔐 Se connecter":
+                with st.form("form_connexion"):
+                    st.subheader("🔐 Authentification Sécurisée")
+                    username = st.text_input("Identifiant Médecin")
+                    password = st.text_input("Mot de passe", type="password")
+                    btn_login = st.form_submit_button("Se Connecter")
+
+                    if btn_login:
+                        if not username or not password:
+                            st.error("❌ Remplissez les deux champs.")
+                        else:
+                            try:
+                                res_auth = requests.post(
+                                    f"{API_URL}/token",
+                                    data={"username": username, "password": password},
+                                    timeout=5
+                                )
+                                if res_auth.status_code == 200:
+                                    st.session_state.token = res_auth.json()["access_token"]
+                                    st.session_state.token_expire = False
+                                    st.rerun()
+                                else:
+                                    st.error("❌ Identifiants incorrects.")
+                            except Exception:
+                                st.error("❌ Serveur API injoignable.")
+
+            # ===== FORMULAIRE INSCRIPTION =====
+            elif mode == "📝 Créer un compte médecin" and ALLOW_REGISTER:
+                with st.form("form_inscription"):
+                    st.subheader("📝 Créer un compte médecin")
+
+                    st.info("⚠️ Réservé au personnel médical autorisé.")
+
+                    new_username = st.text_input("Choisir un identifiant *")
+                    new_password = st.text_input(
+                        "Choisir un mot de passe *", type="password"
+                    )
+                    confirm_password = st.text_input(
+                        "Confirmer le mot de passe *", type="password"
+                    )
+
+                    btn_register = st.form_submit_button("✅ Créer mon compte")
+
+                    if btn_register:
+                        # Validations
+                        erreurs = []
+                        if not new_username.strip():
+                            erreurs.append("L'identifiant est obligatoire.")
+                        if len(new_username.strip()) < 4:
+                            erreurs.append("L'identifiant doit faire au moins 4 caractères.")
+                        if not new_password:
+                            erreurs.append("Le mot de passe est obligatoire.")
+                        if len(new_password) < 6:
+                            erreurs.append("Le mot de passe doit faire au moins 6 caractères.")
+                        if new_password != confirm_password:
+                            erreurs.append("Les mots de passe ne correspondent pas.")
+
+                        if erreurs:
+                            for e in erreurs:
+                                st.error(f"❌ {e}")
+                        else:
+                            try:
+                                res_reg = requests.post(
+                                    f"{API_URL}/register",
+                                    json={
+                                        "username": new_username.strip(),
+                                        "password": new_password
+                                    },
+                                    timeout=5
+                                )
+                                if res_reg.status_code == 200:
+                                    st.success(f"✅ Compte créé pour **{new_username}** !")
+                                    st.info("Vous pouvez maintenant vous connecter.")
+                                elif res_reg.status_code == 400:
+                                    st.error("❌ Cet identifiant est déjà pris.")
+                                else:
+                                    st.error(f"❌ Erreur serveur ({res_reg.status_code}).")
+                            except Exception:
+                                st.error("❌ Serveur API injoignable.")
+
     else:
-                    # Interface si le médecin est connecté
+        # ===== INTERFACE MÉDECIN CONNECTÉ =====
         col_head1, col_head2 = st.columns([4, 1])
         col_head1.header("👨‍⚕️ Dossiers Patients Privés")
-        if col_head2.button("Se déconnecter"):
+        if col_head2.button("🚪 Se déconnecter"):
             st.session_state.token = None
             st.rerun()
-                       
+
         st.write("---")
-                   
-        patient_id = st.number_input("Entrez l'identifiant (ID) du patient à consulter", min_value=1, step=1)         
-       
-        if st.button("Afficher le dossier médical"):
-            headers = {"Authorization": f"Bearer {st.session_state.token}"}
-        # Appel à la route sécurisée !
-            res_dossier = requests.get(f"{API_URL}/medecin/patient/{patient_id}", headers=headers)
-           
-            if res_dossier.status_code == 200:
-                p = res_dossier.json()
-               
-                # Affichage des infos personnelles chiffrées/protégées
-                st.markdown(f"### 📋 Patient : **{p['nom_complet']}**")
-                c1, c2, c3 = st.columns(3)
-                c1.info(f"Âge : {p['age']} ans | Sexe : {p['genre']}")
-                c2.info(f"Poids : {p['poids']} kg | Groupe : {p['groupe_sanguin']}")
-                c3.info(f"Contact : {p['email']}")
-               
-                # Génération des graphiques Plotly
-                if p.get('mesures'):
-                    df = pd.DataFrame(p['mesures'])
-                    df['date_prise'] = pd.to_datetime(df['date_prise'])
-                    df = df.sort_values('date_prise')
-                   
-                    col_priv1, col_priv2 = st.columns(2)
 
-                    with col_priv1:
-                        # Line chart température
-                        fig_temp_priv = px.line(
-                            df, x='date_prise', y='temperature',
-                            markers=True, title="🌡️ Évolution Température"
+        patients, erreur = get_liste_patients(st.session_state.token)
+
+        if erreur == "token_expire":
+            st.session_state.token_expire = True
+            st.rerun()
+        elif erreur == "api_hors_ligne":
+            st.error("❌ API hors ligne.")
+        elif not patients:
+            st.info("ℹ️ Aucun patient enregistré.")
+        else:
+            options_patients = {
+                f"{p['nom_complet']} — {p['email']}": p['id']
+                for p in patients
+            }
+            choix = st.selectbox(
+                "🔍 Sélectionner un patient",
+                options=list(options_patients.keys()),
+                help=f"{len(patients)} patient(s) enregistré(s)"
+            )
+            patient_id_selectionne = options_patients[choix]
+
+            if st.button("📋 Afficher le dossier médical"):
+                dossier, err = get_dossier_patient(
+                    patient_id_selectionne, st.session_state.token
+                )
+
+                if err == "token_expire":
+                    st.session_state.token_expire = True
+                    st.rerun()
+                elif err == "introuvable":
+                    st.error("❌ Dossier introuvable.")
+                elif err == "api_hors_ligne":
+                    st.error("❌ Serveur injoignable.")
+                elif dossier:
+                    p = dossier
+                    st.markdown(f"### 📋 Patient : **{p['nom_complet']}**")
+                    c1, c2, c3 = st.columns(3)
+                    c1.info(f"🎂 Âge : {p['age']} ans | ⚧ Sexe : {p['genre']}")
+                    c2.info(f"⚖️ Poids : {p['poids']} kg | 🩸 Groupe : {p['groupe_sanguin']}")
+                    c3.info(f"📧 {p['email']}")
+
+                    if p.get('mesures'):
+                        df = pd.DataFrame(p['mesures'])
+                        df['date_prise'] = pd.to_datetime(df['date_prise'])
+                        df = df.sort_values('date_prise')
+
+                        derniere = df.iloc[-1]
+                        st.write("---")
+                        st.subheader("📊 Dernière mesure")
+                        m1, m2 = st.columns(2)
+                        m1.metric("🌡️ Température", f"{derniere['temperature']} °C",
+                                  "⚠️ Fièvre" if derniere['temperature'] > 37.5 else "✅ Normale")
+                        m2.metric("❤️ Rythme Cardiaque", f"{int(derniere['rythme_cardiaque'])} BPM",
+                                  "⚠️ Tachycardie" if derniere['rythme_cardiaque'] > 100 else "✅ Stable")
+
+                        st.write("---")
+                        st.subheader("📈 Historique des Constantes")
+                        col_priv1, col_priv2 = st.columns(2)
+
+                        with col_priv1:
+                            fig_temp_priv = px.line(
+                                df, x='date_prise', y='temperature',
+                                markers=True, title="🌡️ Évolution Température"
+                            )
+                            fig_temp_priv.add_hline(
+                                y=37.5, line_dash="dash", line_color="#ef4444",
+                                opacity=0.7, annotation_text="Seuil fièvre",
+                                annotation_font_color="#ef4444"
+                            )
+                            fig_temp_priv.update_traces(
+                                line=dict(color="#2563eb", width=2.5),
+                                marker=dict(color="#0ea5e9", size=8)
+                            )
+                            fig_temp_priv.update_layout(
+                                paper_bgcolor="rgba(0,0,0,0)",
+                                plot_bgcolor="rgba(0,0,0,0)",
+                                font={"color": "#a8b8cc"},
+                                title_font_color="#ffffff", height=300,
+                                margin=dict(t=50, b=20, l=20, r=20),
+                                xaxis=dict(gridcolor="rgba(255,255,255,0.05)", title="Date"),
+                                yaxis=dict(gridcolor="rgba(255,255,255,0.05)",
+                                          title="°C", range=[35, 42])
+                            )
+                            st.plotly_chart(fig_temp_priv, use_container_width=True)
+
+                        with col_priv2:
+                            fig_cardio_priv = px.area(
+                                df, x='date_prise', y='rythme_cardiaque',
+                                title="❤️ Rythme Cardiaque"
+                            )
+                            fig_cardio_priv.add_hline(
+                                y=100, line_dash="dash", line_color="#f59e0b",
+                                opacity=0.7, annotation_text="Seuil tachycardie",
+                                annotation_font_color="#f59e0b"
+                            )
+                            fig_cardio_priv.update_traces(
+                                fill="tozeroy",
+                                fillcolor="rgba(14,165,233,0.15)",
+                                line=dict(color="#0ea5e9", width=2.5)
+                            )
+                            fig_cardio_priv.update_layout(
+                                paper_bgcolor="rgba(0,0,0,0)",
+                                plot_bgcolor="rgba(0,0,0,0)",
+                                font={"color": "#a8b8cc"},
+                                title_font_color="#ffffff", height=300,
+                                margin=dict(t=50, b=20, l=20, r=20),
+                                xaxis=dict(gridcolor="rgba(255,255,255,0.05)", title="Date"),
+                                yaxis=dict(gridcolor="rgba(255,255,255,0.05)", title="BPM")
+                            )
+                            st.plotly_chart(fig_cardio_priv, use_container_width=True)
+
+                        st.markdown("**🔍 Détection d'anomalies**")
+                        fig_scatter = px.scatter(
+                            df, x='temperature', y='rythme_cardiaque',
+                            color='temperature',
+                            color_continuous_scale=["#34d399", "#2563eb", "#ef4444"],
+                            hover_data=['date_prise'],
+                            title="Corrélation Température / Cardio"
                         )
-                        fig_temp_priv.add_hline(
-                            y=37.5, line_dash="dash",
-                            line_color="#ef4444", opacity=0.7,
-                            annotation_text="Seuil fièvre 37.5°C",
-                            annotation_font_color="#ef4444"
-                        )
-                        fig_temp_priv.update_traces(
-                            line=dict(color="#2563eb", width=2.5),
-                            marker=dict(color="#0ea5e9", size=8)
-                        )
-                        fig_temp_priv.update_layout(
+                        fig_scatter.add_vline(x=37.5, line_dash="dash",
+                                             line_color="#ef4444", opacity=0.5)
+                        fig_scatter.add_hline(y=100, line_dash="dash",
+                                             line_color="#f59e0b", opacity=0.5)
+                        fig_scatter.update_traces(marker=dict(size=10, opacity=0.8))
+                        fig_scatter.update_layout(
                             paper_bgcolor="rgba(0,0,0,0)",
                             plot_bgcolor="rgba(0,0,0,0)",
                             font={"color": "#a8b8cc"},
-                            title_font_color="#ffffff",
-                            height=300,
+                            title_font_color="#ffffff", height=350,
                             margin=dict(t=50, b=20, l=20, r=20),
-                            xaxis=dict(gridcolor="rgba(255,255,255,0.05)", title="Date"),
-                            yaxis=dict(gridcolor="rgba(255,255,255,0.05)", title="°C", range=[35, 42])
+                            xaxis=dict(gridcolor="rgba(255,255,255,0.05)",
+                                      title="Température (°C)"),
+                            yaxis=dict(gridcolor="rgba(255,255,255,0.05)", title="BPM"),
+                            coloraxis_showscale=False
                         )
-                        st.plotly_chart(fig_temp_priv, use_container_width=True)
-
-                    with col_priv2:
-                        # Area chart rythme cardiaque
-                        fig_cardio_priv = px.area(
-                            df, x='date_prise', y='rythme_cardiaque',
-                            title="❤️ Rythme Cardiaque"
-                        )
-                        fig_cardio_priv.add_hline(
-                            y=100, line_dash="dash",
-                            line_color="#f59e0b", opacity=0.7,
-                            annotation_text="Seuil tachycardie",
-                            annotation_font_color="#f59e0b"
-                        )
-                        fig_cardio_priv.update_traces(
-                            fill="tozeroy",
-                            fillcolor="rgba(14,165,233,0.15)",
-                            line=dict(color="#0ea5e9", width=2.5)
-                        )
-                        fig_cardio_priv.update_layout(
-                            paper_bgcolor="rgba(0,0,0,0)",
-                            plot_bgcolor="rgba(0,0,0,0)",
-                            font={"color": "#a8b8cc"},
-                            title_font_color="#ffffff",
-                            height=300,
-                            margin=dict(t=50, b=20, l=20, r=20),
-                            xaxis=dict(gridcolor="rgba(255,255,255,0.05)", title="Date"),
-                            yaxis=dict(gridcolor="rgba(255,255,255,0.05)", title="BPM")
-                        )
-                        st.plotly_chart(fig_cardio_priv, use_container_width=True)
-
-                    # Scatter anomalies
-                    st.markdown("**🔍 Détection d'anomalies**")
-                    fig_scatter = px.scatter(
-                        df, x='temperature', y='rythme_cardiaque',
-                        color='temperature',
-                        color_continuous_scale=["#34d399", "#2563eb", "#ef4444"],
-                        size_max=15,
-                        hover_data=['date_prise'],
-                        title="Corrélation Température / Cardio"
-                    )
-                    fig_scatter.add_vline(x=37.5, line_dash="dash", line_color="#ef4444", opacity=0.5)
-                    fig_scatter.add_hline(y=100,  line_dash="dash", line_color="#f59e0b", opacity=0.5)
-                    fig_scatter.update_traces(marker=dict(size=10, opacity=0.8))
-                    fig_scatter.update_layout(
-                        paper_bgcolor="rgba(0,0,0,0)",
-                        plot_bgcolor="rgba(0,0,0,0)",
-                        font={"color": "#a8b8cc"},
-                        title_font_color="#ffffff",
-                        height=350,
-                        margin=dict(t=50, b=20, l=20, r=20),
-                        xaxis=dict(gridcolor="rgba(255,255,255,0.05)", title="Température (°C)"),
-                        yaxis=dict(gridcolor="rgba(255,255,255,0.05)", title="BPM"),
-                        coloraxis_showscale=False
-                    )
-                    st.plotly_chart(fig_scatter, use_container_width=True)
-                else:
-                    st.warning("Aucune constante enregistrée pour ce patient.")
-            else:
-                st.error("Dossier introuvable ou vous n'avez pas les autorisations nécessaires.")
+                        st.plotly_chart(fig_scatter, use_container_width=True)
+                    else:
+                        st.warning("⚠️ Aucune constante enregistrée pour ce patient.")
