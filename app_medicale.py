@@ -564,38 +564,7 @@ with tab_medecin:
         col_log1, col_log2, col_log3 = st.columns([1, 2, 1])
        
         with col_log2:
-            def espace_medecin():
-                st.title("🩺 Espace Médecin")
             
-                # --- ÉTAPE A : LE FORMULAIRE DE CRÉATION (Le "Où") ---
-                if INSCRIPTION_OUVERTE:
-                    with st.expander("➕ Pas encore de compte ? S'inscrire"):
-                        with st.form("form_crea_compte"):
-                            col1, col2 = st.columns(2)
-                            with col1:
-                                n_nom = st.text_input("Nom complet")
-                                n_email = st.text_input("Email pro")
-                            with col2:
-                                n_spec = st.text_input("Spécialité")
-                                n_pwd = st.text_input("Mot de passe", type="password")
-                           
-                            if st.form_submit_button("Créer mon compte médecin"):
-                                if n_nom and n_email and n_pwd:
-                                    # Envoi au backend
-                                    payload = {"nom": n_nom, "email": n_email, "specialite": n_spec, "password": n_pwd}
-                                    res = requests.post(f"{API_URL}/register/medecin", json=payload)
-                                    if res.status_code == 200:
-                                        st.success("Compte créé ! Connectez-vous ci-dessous.")
-                                    else:
-                                        st.error("Erreur lors de la création.")
-                                else:
-                                    st.warning("Veuillez remplir tous les champs.")
-            
-                st.divider() # Une ligne pour séparer l'inscription du login
-            
-                # --- ÉTAPE B : TON CODE DE CONNEXION EXISTANT ---
-                st.subheader("Connexion")
-                # ... (ici tu laisses ton code actuel pour le login)
             with st.form("form_connexion"):
                 st.subheader("Authentification Sécurisée")
                 username = st.text_input("Identifiant Médecin")
