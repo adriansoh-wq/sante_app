@@ -609,17 +609,17 @@ with tab_medecin:
                         st.rerun()
                     else:
                         st.error("Identifiants incorrects.")
-        else:
-            # Interface si le médecin est connecté
-            col_head1, col_head2 = st.columns([4, 1])
-            col_head1.header("👨‍⚕️ Dossiers Patients Privés")
-            if col_head2.button("Se déconnecter"):
-                st.session_state.token = None
-                st.rerun()
-               
-            st.write("---")
-           
-            patient_id = st.number_input("Entrez l'identifiant (ID) du patient à consulter", min_value=1, step=1)
+                else:
+                    # Interface si le médecin est connecté
+                    col_head1, col_head2 = st.columns([4, 1])
+                    col_head1.header("👨‍⚕️ Dossiers Patients Privés")
+                    if col_head2.button("Se déconnecter"):
+                        st.session_state.token = None
+                        st.rerun()
+                       
+                    st.write("---")
+                   
+                    patient_id = st.number_input("Entrez l'identifiant (ID) du patient à consulter", min_value=1, step=1)
        
         if st.button("Afficher le dossier médical"):
             headers = {"Authorization": f"Bearer {st.session_state.token}"}
