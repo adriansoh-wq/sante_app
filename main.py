@@ -166,6 +166,16 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     access_token = security.create_access_token(data={"sub": user.username, "role": user.role})
     return {"access_token": access_token, "token_type": "bearer"}
 
+@app.get("/medecin/patients")
+def lister_patients(
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(security.get_current_user)
+):
+    patients = db.query(models.Patient).all()
+    return [
+        {"id": p.id, "nom_complet": p.nom_complet, "email": p.email}
+        for p in patients
+    ]
 
 @app.get("/medecin/patient/{patient_id}", response_model=schemas.Patient)
 def consulter_dossier_prive(
