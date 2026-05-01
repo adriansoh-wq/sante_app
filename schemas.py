@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 from typing import List, Optional
 from datetime import datetime
 
@@ -56,6 +56,12 @@ class UserCreate(BaseModel):
 class User(BaseModel):
     id: int
     username: str
+    class Config:
+        from_attributes = True
 
+class PatientResume(BaseModel):
+    id: int
+    nom_complet: str
+    email: str
     class Config:
         from_attributes = True
