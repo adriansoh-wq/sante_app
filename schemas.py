@@ -39,6 +39,20 @@ class UserCreate(BaseModel):
     username: str
     password: str
 
+    @validator("password")
+    def password_valide(cls, v):
+        if len(v) < 6:
+            raise ValueError("Mot de passe trop court (minimum 6 caractères)")
+        if len(v.encode('utf-8')) > 72:
+            raise ValueError("Mot de passe trop long (maximum 72 caractères)")
+        return v
+
+    @validator("username")
+    def username_valide(cls, v):
+        if len(v) < 4:
+            raise ValueError("Identifiant trop court (minimum 4 caractères)")
+        return v
+
 class User(BaseModel):
     id: int
     username: str
