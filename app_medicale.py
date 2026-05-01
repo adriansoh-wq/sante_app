@@ -24,12 +24,74 @@ def keep_alive():
 thread = threading.Thread(target=keep_alive, daemon=True)
 thread.start()
 
+@st.cache_data(ttl=60)
+def get_stats_globales():
+    try:
+        res = requests.get(f"{API_URL}/public/stats_globales", timeout=5)
+        if res.status_code == 200:
+            return res.json(), True
+    except Exception:
+        pass
+    return {"temp_moyenne": 0, "pouls_moyen": 0, "total_relevés": "--", "historique_temp": []}, False
+
+
+@st.cache_data(ttl=60)
+def get_saisies_par_jour():
+    try:
+        res = requests.get(f"{API_URL}/public/saisies_par_jour", timeout=5)
+        if res.status_code == 200:
+            return pd.DataFrame(res.json()), True
+    except Exception:
+        pass
+    df_vide = pd.DataFrame({
+        "Jour": ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"],
+        "Saisies": [0]*7,
+        "Date": ["--"]*7
+    })
+    return df_vide, False
+
+
+def get_liste_patients(token):
+    try:
+        headers = {"Authorization": f"Bearer {token}"}
+        res = requests.get(
+            f"{API_URL}/medecin/patients",
+            headers=headers,
+            timeout=5
+        )
+        if res.status_code == 200:
+            return res.json(), None
+        elif res.status_code == 401:
+            return None, "token_expire"
+    except Exception:
+        pass
+    return None, "api_hors_ligne"
+
+
+def get_dossier_patient(patient_id, token):
+    try:
+        headers = {"Authorization": f"Bearer {token}"}
+        res = requests.get(
+            f"{API_URL}/medecin/patient/{patient_id}",
+            headers=headers,
+            timeout=5
+        )
+        if res.status_code == 200:
+            return res.json(), None
+        elif res.status_code == 401:
+            return None, "token_expire"
+        elif res.status_code == 404:
+            return None, "introuvable"
+    except Exception:
+        pass
+    return None, "api_hors_ligne"
+
 st.set_page_config(page_title="HealthCollect Pro", page_icon="🏥", layout="wide")
 
 # Actualise l'application automatiquement toutes les 30 secondes
 st.empty() # Optionnel
 from streamlit_autorefresh import st_autorefresh # Nécessite 'pip install streamlit-autorefresh'
-st_autorefresh(interval=30000, key="datarefresh")
+st_autorefresh(interval=100000, key="datarefresh")
 
 # --- STYLE MODERNE (CSS) ---
 st.markdown("""
