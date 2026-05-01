@@ -132,26 +132,28 @@ def toutes_mesures(db: Session = Depends(database.get_db)):
 # ==========================================
 
 @app.post("/register", response_model=schemas.User)
-def créer_compte_medecin(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
-    # 1. Vérifier si l'utilisateur existe déjà
-    db_user = db.query(models.User).filter(models.User.username == user.username).first()
+def créer_compte_medecin(
+    user: schemas.UserCreate,
+    db: Session = Depends(database.get_db)
+):
+    # Vérifier si username existe déjà
+    db_user = db.query(models.User).filter(
+        models.User.username == user.username
+    ).first()
     if db_user:
-        raise HTTPException(status_code=400, detail="Ce nom d'utilisateur est déjà pris.")
-   
-    # 2. Hacher le mot de passe avant de l'enregistrer
-    # (Utilisez bien le nom de fonction présent dans votre security.py)
+        raise HTTPException(
+            status_code=400,
+            detail="Ce nom d'utilisateur est déjà pris."
+        )
+
     hashed_pw = security.hash_password(user.password)
-   
-    # 3. Créer l'entrée dans la base de données
     nouveau_medecin = models.User(
         username=user.username,
         hashed_password=hashed_pw
     )
-   
     db.add(nouveau_medecin)
     db.commit()
     db.refresh(nouveau_medecin)
-   
     return nouveau_medecin
 
 @app.post("/token")
