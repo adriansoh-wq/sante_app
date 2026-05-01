@@ -17,11 +17,13 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 def hash_password(password: str):
     """Hache le mot de passe en utilisant bcrypt."""
-    return pwd_context.hash(password)
+    password_bytes = password.encode('utf-8')[:72].decode('utf-8', errors='ignore')
+    return pwd_context.hash(password_bytes)
 
 def verifier_password(plain_password, hashed_password):
     """Vérifie si le mot de passe en clair correspond au hachage."""
-    return pwd_context.verify(plain_password, hashed_password)
+    password_bytes = plain_password.encode('utf-8')[:72].decode('utf-8', errors='ignore')
+    return pwd_context.verify(password_bytes, hashed_password)
 
 def create_access_token(data: dict):
     """Génère un token JWT pour l'utilisateur connecté."""
