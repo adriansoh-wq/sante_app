@@ -13,7 +13,7 @@ models.Base.metadata.create_all(bind=database.engine)
 
 @app.get("/ping")
 def ping():
-    return {"status": "alive"}
+    return {"status": "alive", "message": "API active"}
 
 # ==========================================
 # ROUTES PUBLIQUES (ACCÈS LIBRE)
